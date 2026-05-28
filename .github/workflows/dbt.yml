@@ -13,9 +13,19 @@ jobs:
     name: Run dbt models and tests
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: "projects/260309254227/locations/global/workloadIdentityPools/github-pool/providers/github-provider"
+          service_account: "dbt-github-actions@nyc-taxi-lakehouse-497608.iam.gserviceaccount.com"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,7 +38,19 @@ jobs:
       - name: Create dbt profiles.yml
         run: |
           mkdir -p ~/.dbt
-          echo "${{ secrets.DBT_PROFILES_YML }}" > ~/.dbt/profiles.yml
+          cat > ~/.dbt/profiles.yml << 'EOF'
+          nyc_taxi:
+            outputs:
+              dev:
+                type: bigquery
+                method: oauth
+                project: nyc-taxi-lakehouse-497608
+                dataset: nyc_taxi
+                threads: 4
+                timeout_seconds: 300
+                location: asia-southeast1
+            target: dev
+          EOF
 
       - name: Run dbt
         working-directory: ./nyc_taxi
