@@ -1,0 +1,12 @@
+data/
+*.parquet
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+nyc_taxi/target/
+nyc_taxi/dbt_packages/
+nyc_taxi/logs/
+.env
+*.json
+__pycache__/
+*.pyc
