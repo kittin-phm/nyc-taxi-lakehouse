@@ -1,0 +1,29 @@
+# WHAT THIS FILE DOES:
+# The main config file for the whole dbt project.
+# Tells dbt: where are the files, how to connect, how to build tables.
+
+name: 'nyc_taxi'        # project name — must match profile name below
+version: '1.0.0'
+config-version: 2
+
+profile: 'nyc_taxi'     # which connection profile to use (set up during dbt init)
+
+# Where dbt looks for each type of file
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"                           # where dbt writes compiled SQL
+clean-targets: ["target", "dbt_packages"]       # what 'dbt clean' deletes
+
+models:
+  nyc_taxi:             # must match the project name above
+    staging:
+      +materialized: view     # staging models = VIEWs in BigQuery
+                              # view = no storage cost, runs query on the fly
+                              # good for staging because data changes often
+    marts:
+      +materialized: table    # mart models = real TABLES in BigQuery
+                              # table = data is stored, fast to query
+                              # good for marts because analysts query them often

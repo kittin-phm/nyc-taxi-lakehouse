@@ -1,0 +1,55 @@
+# WHAT THIS FILE DOES:
+# This defines data quality TESTS that dbt runs automatically.
+# After dbt run builds the tables, dbt test checks them.
+# If a test fails → dbt stops and alerts you BEFORE anyone sees bad data.
+# Think of it like: unit tests in software engineering, but for data.
+
+version: 2
+
+# SOURCES = the raw tables that already exist in BigQuery (we didn't create them with dbt)
+sources:
+  - name: nyc_taxi                              # name we use in {{ source() }} calls
+    database: nyc-taxi-lakehouse-497608         # GCP project ID
+    schema: nyc_taxi                            # BigQuery dataset name
+    tables:
+      - name: raw_trips                         # the table we loaded in Step 3
+
+# MODELS = the dbt models we created (Files 1, 2, 3)
+models:
+  - name: stg_taxi_trips
+    description: "Cleaned and renamed taxi trips from raw source"
+    columns:
+      - name: pickup_datetime
+        tests:
+          - not_null        # FAIL if any row has null pickup_datetime
+                            # Why? A trip with no start time = broken data
+
+      - name: total_amount
+        tests:
+          - not_null        # FAIL if any fare is null
+
+      - name: vendor_id
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2] 
+              quote: false # FAIL if vendor_id is anything other than 1 or 2
+                              # NYC TLC only has 2 vendors — anything else = bad data
+
+  - name: fct_trips
+    description: "One row per taxi trip, enriched with time features"
+    columns:
+      - name: trip_id
+        tests:
+          - not_null        # every trip must have an ID
+          - unique          # FAIL if two trips have the same ID
+                            # Like a primary key check in a database
+
+  - name: fct_revenue
+    description: "Daily revenue aggregation"
+    columns:
+      - name: trip_date
+        tests:
+          - not_null
+          - unique          # FAIL if the same date appears twice
+                            # Since we GROUP BY date, duplicates = bug in our SQL
